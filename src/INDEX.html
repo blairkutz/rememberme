@@ -1,0 +1,14 @@
+<?!= include('style'); ?>
+<div id="cover"></div>
+<div>
+  <div style="background-color:White; width:900px; margin:auto">
+    <h1 style="font-family:verdana; font-size:200%; text-align:center">RememberMe</h1>
+    <hr>
+    <div id="readers_div"></div>
+    <hr>
+    <input name='save_changes' type='button' value='Save' class='button' onclick='showLoading(); save();'></input>
+    <input style="margin-left: 5px" name='new_reader' type='button' value='Add Recipient' class='button' onclick='newReader();'></input>
+    <a style="margin-left: 5px" target="_blank" href="https://docs.google.com/document/d/1Di_spWWtEgVO-KQXeQCAkJouKpbSb7m2OG1iTIBtI18/edit">Help</a>
+  </div>
+</div>
+<?!= include('client_side_script'); ?>

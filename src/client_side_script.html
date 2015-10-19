@@ -1,0 +1,385 @@
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+<!-- <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.9.1/jquery-ui.min.js"></script> -->
+
+<script>
+$(document).ready(function(){
+  showLoading();
+  main();
+});
+
+// client side utils
+function debug(msg) { console.log(msg); }
+function error(msg) { debug(msg); alert(msg); }
+function errorHandler(err) { error(err.message); finishedLoading() }
+
+// Constants
+var _DAILY = 'daily';
+var _WEEKLY = 'weekly';
+var _MONTHLY = 'monthly';
+var _ONCE = 'once';
+
+function showLoading() {
+  $('#cover').show();    
+}
+
+function finishedLoading() {
+  $('#cover').fadeOut(250);
+}
+
+function toggleAdvanced(link_element, advanced_div) {
+  if(advanced_div.is( ":visible" )) {
+    advanced_div.slideUp(function() { advanced_div.parent().css({'background-color': 'white'}); });
+    link_element.text('show options');
+  } else {
+    advanced_div.parent().css({'background-color': '#CCFFFF'});
+    advanced_div.slideDown();
+    link_element.text('hide options');
+  }
+}
+
+function showAdvanced(reader_div) {
+  reader_div.css({'background-color': '#CCFFFF'});
+  var advanced_div = reader_div.find('.advanced');
+  var link_element = advanced_div.find('a');
+  advanced_div.show();
+  link_element.text('hide options');
+}
+
+function showNoReaderMessage() {
+  $('#no_readers').show();
+}
+
+function hideNoReaderMessage() {
+  $('#no_readers').hide();
+}
+
+function getReaderDiv() {
+  return $('#readers_div');
+}
+
+function getValueFromDiv(reader_div, value) {
+  return reader_div.find('[reader_field='+value+']');
+}
+
+// Show/Hide depending on freq value of reader_div
+function showOrHideWithFrequencySetting(reader_div) {
+  var freq = getValueFromDiv(reader_div, 'freq').val();
+  // Hide/Show parents for all these to also hide the label.
+  if(freq == _DAILY) {
+    reader_div.find('[freq=email_weekday]').prop('disabled', true);
+    reader_div.find('[freq=email_month_day]').prop('disabled', true);
+    reader_div.find('[freq=email_year_month]').prop('disabled', true);
+    reader_div.find('[freq=email_year]').prop('disabled', true);
+  } else if(freq == _WEEKLY) {
+    reader_div.find('[freq=email_weekday]').prop('disabled', false);
+    reader_div.find('[freq=email_month_day]').prop('disabled', true);
+    reader_div.find('[freq=email_year_month]').prop('disabled', true);
+    reader_div.find('[freq=email_year]').prop('disabled', true);
+  } else if(freq == _MONTHLY) {
+    reader_div.find('[freq=email_weekday]').prop('disabled', true);
+    reader_div.find('[freq=email_month_day]').prop('disabled', false);
+    reader_div.find('[freq=email_year_month]').prop('disabled', true);
+    reader_div.find('[freq=email_year]').prop('disabled', true);
+  } else if(freq == _ONCE) {
+    reader_div.find('[freq=email_weekday]').prop('disabled', true);
+    reader_div.find('[freq=email_month_day]').prop('disabled', false);
+    reader_div.find('[freq=email_year_month]').prop('disabled', false);
+    reader_div.find('[freq=email_year]').prop('disabled', false);
+  }
+}
+
+// New Reader button pressed.
+function newReader() {
+  var reader_div = getReaderDiv();
+  var new_reader_div = createNewReaderDiv();
+  // Show advanced section for newly created readers
+  showAdvanced(new_reader_div);
+  showOrHideWithFrequencySetting(new_reader_div);
+  reader_div.append(new_reader_div);
+}
+
+// Save button pressed.
+function save() {
+  var readers_div = getReaderDiv();
+  var readers = readers_div.find('.reader');
+  var reader_list = [];
+  // Make sure each reader is valid.
+  for(var i=0; i<readers.length; i++) {
+    var reader_element = $(readers[i]);
+    
+    var fields = reader_element.find('[reader_field]');
+    var reader = {};
+    
+    for(var j=0; j<fields.length; j++) {
+      var field = $(fields[j]);
+      reader[field.attr('reader_field')] = field.val().trim();
+    }
+    
+    if(reader.name.length == 0) {
+      error('"Recipient Name" is required.');
+      finishedLoading();
+      return;
+    }
+    if(reader.email.length == 0) {
+      error('"Recipient email" is required.');
+      finishedLoading();
+      return;
+    }
+    // debug('Saving:' + JSON.stringify(reader));
+    reader_list.push(reader);
+  }
+  debug(reader_list.length + " readers to save.");
+  google.script.run.withSuccessHandler(fillPage).withFailureHandler(errorHandler).save(reader_list);
+}
+
+// Return a readerdiv
+function createNewReaderDiv() {
+  var reader_div = $('<div/>')
+    .css({'text-align': 'center', 'width': '95%', 'margin-left': 'auto', 'margin-right': 'auto'})
+    .attr('class', 'reader');
+  
+  // div which holds advanced options:
+  // - Writer nickname
+  // - Email Freq (and all dates)
+  // - Reminder email text
+  var advanced_div = $('<div/>')
+    .attr('class', 'advanced')
+    .css({'float': 'left'})
+    .hide();
+  var simple_div = $('<div/>')
+    .css({'float': 'left'});
+  
+  // Reader Name
+  simple_div.append($('<label/>')
+    .text('Recipient Name: '));
+  simple_div.append($('<input/>')
+      .css({'margin-bottom': '10px', 'margin-top': '10px'})
+      .attr('type', 'text')
+      .attr('reader_field', 'name')
+      .attr('placeholder', 'example: Wifey'));
+
+  // Reader Email
+  simple_div.append($('<label/>')
+    .css({'margin-left': '5px'})
+    .text('Recipient Email: '));
+  simple_div.append($('<input/>')
+      .attr('type', 'text')
+      .attr('placeholder', 'example: wifey@gmail.com')
+      .attr('reader_field', 'email'));
+    
+  // Show Options
+  simple_div.append($('<a/>')
+    .css({'margin-left': '5px'})
+    .attr('href', 'javascript:void(0)')
+    .text('show options')
+    .click(
+      function() {
+        toggleAdvanced($(this), advanced_div);
+      }));
+
+  // Delete Button
+  simple_div.append($('<input/>')
+    .attr('type', 'button')
+    .css({'margin-left': '5px'})
+    .val('Delete')
+    .click(function() {
+      $(this).parents('.reader').fadeOut(function(){ $(this).remove(); });
+    }));
+    
+  reader_div.append(simple_div);
+  
+  // Newline for advanced section
+  reader_div.append($('<div/>')
+    .css({'clear': 'both'})
+  );
+
+  // Email Frequency
+  advanced_div.append($('<label/>')
+    .text('Frequency: ')
+  );
+  advanced_div.append($('<select/>')
+    .css({'margin-left': '5px', 'margin-bottom': '10px'})
+    .attr('reader_field', 'freq')
+    .append($('<option/>').val(_DAILY).text('daily'))
+    .append($('<option/>').val(_WEEKLY).text('weekly'))
+    .append($('<option/>').val(_MONTHLY).text('monthly'))
+    .append($('<option/>').val(_ONCE).text('once'))
+    .val('weekly')
+    .change(function() {
+      showOrHideWithFrequencySetting($(this).parents('.reader'));
+    })
+  );
+
+  // Email Hour
+  advanced_div.append($('<label/>')
+    .css({'margin-left': '5px'})
+    .attr('freq', 'email_hour')
+    .text('Hour: '));
+  var hour_select = $('<select/>')
+    .css({'margin-left': '5px'})
+    .attr('freq', 'email_hour')
+    .attr('reader_field', 'email_hour');
+  // val is i-1 because Date object takes hours 0-23
+  hour_select.append($('<option/>').val(0).text("12-1AM"));
+  for(var i=1; i<12; i++) {
+    hour_select.append($('<option/>').val(i).text(i + "-" + (i+1)+"AM"));
+  }
+  hour_select.append($('<option/>').val(12).text("12-1PM"));
+  for(var i=1; i<12; i++) {
+    hour_select.append($('<option/>').val(i+12).text(i + "-" + (i+1) + " PM"));
+  }
+  // Default to 9AM
+  hour_select.val('8');
+  advanced_div.append(hour_select);
+    
+  // Email Weekday
+  advanced_div.append($('<label/>')
+    .css({'margin-left': '5px'})
+    .attr('freq', 'email_weekday')
+    .text('Day: '));
+  advanced_div.append($('<select/>')
+    .css({'margin-left': '5px'})
+    .attr('freq', 'email_weekday')
+    .attr('reader_field', 'email_weekday')
+    .append($('<option/>').val(0).text('Sunday'))
+    .append($('<option/>').val(1).text('Monday'))
+    .append($('<option/>').val(2).text('Tuesday'))
+    .append($('<option/>').val(3).text('Wednesday'))
+    .append($('<option/>').val(4).text('Thursday'))
+    .append($('<option/>').val(5).text('Friday'))
+    .append($('<option/>').val(6).text('Saturday'))
+    .val(1)
+  );
+    
+  // Day of month
+  advanced_div.append($('<label/>')
+    .css({'margin-left': '5px'})
+    .attr('freq', 'email_month_day')
+    .text('Month day: '));
+  var month_day_select = $('<select/>')
+    .attr('freq', 'email_month_day')
+    .css({'margin-left': '5px'})
+    .attr('reader_field', 'email_month_day');
+  // Date object accepts 1-31
+  for(var i=1; i<32; i++) {
+    month_day_select.append($('<option/>').val(i).text(i));
+  }
+  // Default to 1st day of month
+  month_day_select.val('0');
+  advanced_div.append(month_day_select);
+
+  // Month of year
+  advanced_div.append($('<label/>')
+    .attr('freq', 'email_year_month')
+    .css({'margin-left': '5px'})
+    .text('Month: '));
+  var month_of_year = $('<select/>')
+    .attr('freq', 'email_year_month')
+    .css({'margin-left': '5px'})
+    .attr('reader_field', 'email_year_month');
+  // Date object accepts 0-11
+  month_of_year.append($('<option/>').val(0).text('Jan'));
+  month_of_year.append($('<option/>').val(1).text('Feb'));
+  month_of_year.append($('<option/>').val(2).text('Mar'));
+  month_of_year.append($('<option/>').val(3).text('Apr'));
+  month_of_year.append($('<option/>').val(4).text('May'));
+  month_of_year.append($('<option/>').val(5).text('Jun'));
+  month_of_year.append($('<option/>').val(6).text('Jul'));
+  month_of_year.append($('<option/>').val(7).text('Aug'));
+  month_of_year.append($('<option/>').val(8).text('Sept'));
+  month_of_year.append($('<option/>').val(9).text('Oct'));
+  month_of_year.append($('<option/>').val(10).text('Nov'));
+  month_of_year.append($('<option/>').val(11).text('Dec'));
+  // Default to Jan
+  month_of_year.val('0');
+  advanced_div.append(month_of_year);
+  
+  // Year
+  advanced_div.append($('<label/>')
+    .attr('freq', 'email_year')
+    .css({'margin-left': '5px'})
+    .text('Year: '));
+  var current_year = (new Date()).getFullYear();
+  advanced_div.append($('<select/>')
+    .attr('freq', 'email_year')
+    .css({'margin-left': '5px'})
+    .attr('reader_field', 'email_year')
+    .append($('<option/>').val(current_year).text(current_year))
+    .append($('<option/>').val(current_year + 1).text(current_year + 1))
+    .append($('<option/>').val(current_year + 2).text(current_year + 2))
+    .append($('<option/>').val(current_year + 3).text(current_year + 3))
+    .val(current_year)
+  );
+  
+  // Newline for text box
+  advanced_div.append($('<div/>')
+    .css({'clear': 'both'})
+  );
+  
+  // Message text box
+  advanced_div.append($('<div/>')
+    .css({'float': 'left'})
+    .append($('<label/>')
+      .css({'vertical-align': 'top'})
+      .text('Reminder email text: '))
+    .append($('<textarea/>')
+      .css({'margin-left': '5px'})
+      .attr('rows', 4)
+      .attr('cols', 60)
+      .attr('type', 'text')
+      .attr('reader_field', 'message')
+      .attr('placeholder', 'Message sent to you. example: "Remember anniversary today!"'))
+  );
+
+  advanced_div.append($('<div/>')
+    .css({'clear': 'both'})
+  );
+  reader_div.append(advanced_div);
+  reader_div.append($('<div/>')
+    .css({'clear': 'both'})
+  );
+  return reader_div;
+}
+
+// Given a reader, add it to the reader_div
+function addReader(parent_div, reader) {
+  var new_reader_div = createNewReaderDiv();
+  getValueFromDiv(new_reader_div, 'name').val(reader.name);
+  getValueFromDiv(new_reader_div, 'email').val(reader.email);
+  getValueFromDiv(new_reader_div, 'freq').val(reader.freq);
+  getValueFromDiv(new_reader_div, 'email_hour').val(reader.email_hour);
+  getValueFromDiv(new_reader_div, 'email_weekday').val(reader.email_weekday);
+  getValueFromDiv(new_reader_div, 'email_month_day').val(reader.email_month_day);
+  getValueFromDiv(new_reader_div, 'email_year_month').val(reader.email_year_month);
+  getValueFromDiv(new_reader_div, 'email_year').val(reader.email_year);
+  getValueFromDiv(new_reader_div, 'message').val(reader.message);
+  showOrHideWithFrequencySetting(new_reader_div);
+  parent_div.append(new_reader_div);
+}
+
+function clearAllReaders() {
+  $('div').remove(".reader");
+}
+
+function fillPage(prefs) {
+  if(prefs.length == 0) {
+    newReader();
+    finishedLoading();
+    return;
+  }
+  
+  var reader_div = getReaderDiv();
+  clearAllReaders();
+  for(var i in prefs) {
+    addReader(reader_div, prefs[i]);
+  }
+  finishedLoading();
+}
+
+function main() {
+  debug('Loading');
+  // Call getData on server side.
+  // If call is successful (eg. doesn't throw exception) then call fillPage, otherwise call errorHandler.
+  google.script.run.withSuccessHandler(fillPage).withFailureHandler(errorHandler).getData();
+}
+</script>
