@@ -105,3 +105,25 @@ Preferences.prototype.getReaders = function() {
 Preferences.prototype.setReaders = function(readers) {
   this.readers = readers;
 }
+Preferences.prototype.deleteReader = function(reader) {
+  LockService.getUserLock().waitLock(1 * 60 * 1000);
+  this.load();
+  var index_to_remove = null;
+  for(var i=0; i<this.readers.length; i++) {
+    if(reader.trigger == this.readers[i].trigger) {
+      debug('Found trigger to delete');
+      index_to_remove = i;
+      break;
+    }
+  }
+  status = false;
+  if(index_to_remove == null) {
+    debug('Could not find reader to delete');
+  } else {
+    this.readers.splice(index_to_remove, 1);
+    this.save();
+    status = true;
+  }
+  LockService.getUserLock().releaseLock();
+  return status;
+}
