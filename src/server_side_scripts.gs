@@ -37,7 +37,8 @@ function getData() {
 function installTrigger(reader) {
   debug('Installing trigger');
   var clock_trigger_builder = ScriptApp.newTrigger('SendEmailTrigger').timeBased();
-  clock_trigger_builder.nearMinute(0);
+  clock_trigger_builder.inTimezone(Session.getScriptTimeZone());
+  clock_trigger_builder.nearMinute(7);
   clock_trigger_builder.atHour(reader.email_hour);
   var date = new Date();
   if (reader.freq == _DAILY) {

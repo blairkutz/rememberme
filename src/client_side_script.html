@@ -13,7 +13,6 @@ limitations under the License.
 
 
 <script src="//ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
-<!-- <script src="//ajax.googleapis.com/ajax/libs/jqueryui/1.9.1/jquery-ui.min.js"></script> -->
 
 <script>
 $(document).ready(function(){
@@ -162,7 +161,24 @@ function save() {
       finishedLoading();
       return;
     }
-    // debug('Saving:' + JSON.stringify(reader));
+    if(reader.freq == _ONCE) {
+      var d = new Date(reader.email_year, reader.email_year_month, reader.email_month_day, reader.email_hour, 0);
+
+      if(d.getFullYear() != parseInt(reader.email_year) ||
+         d.getMonth() != parseInt(reader.email_year_month) ||
+         d.getDate() != parseInt(reader.email_month_day) ||
+         d.getHours() != parseInt(reader.email_hour)) {
+         error('Date specified for reader: ' + reader.name + ' is not valid.');
+         finishedLoading();
+         return;
+       }
+       
+       if((new Date()).getTime() > d.getTime()) {
+         error('Date specified for reader: ' + reader.name + ' is in the past');
+         finishedLoading();
+         return;
+       }
+    }
     reader_list.push(reader);
   }
   debug(reader_list.length + " readers to save.");
@@ -292,16 +308,14 @@ function createNewReaderDiv() {
     .attr('freq', 'email_hour')
     .attr('reader_field', 'email_hour');
   // val is i-1 because Date object takes hours 0-23
-  hour_select.append($('<option/>').val(0).text("12-1AM"));
-  for (var i = 1; i < 11; i++) {
-    hour_select.append($('<option/>').val(i).text(i + "-" + (i + 1) + "AM"));
+  hour_select.append($('<option/>').val(0).text("12 AM"));
+  for (var i = 1; i < 12; i++) {
+    hour_select.append($('<option/>').val(i).text(i + " AM"));
   }
-  hour_select.append($('<option/>').val(11).text("11-12PM"));
-  hour_select.append($('<option/>').val(12).text("12-1PM"));
-  for (var i = 1; i < 11; i++) {
-    hour_select.append($('<option/>').val(i + 12).text(i + "-" + (i + 1) + " PM"));
+  hour_select.append($('<option/>').val(12).text("12 PM"));
+  for (var i = 1; i < 12; i++) {
+    hour_select.append($('<option/>').val(i + 12).text(i + " PM"));
   }
-  hour_select.append($('<option/>').val(23).text("11-12AM"));
   // Default to 9AM
   hour_select.val('8');
   advanced_div.append(hour_select);
