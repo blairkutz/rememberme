@@ -9,7 +9,7 @@
 * [Tutorial](#tutorial)
 * [Questions / Issues](#questions--issues)
 * [Uninstalling](#uninstalling)
-* [Details of how it works](#details-of-how-it- works)
+* [Details of how it works](#details-of-how-it-works)
 * [FAQ](#faq)
 * [Code](#code)
 
